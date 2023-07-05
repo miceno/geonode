@@ -299,6 +299,7 @@ class Command(BaseCommand):
         passwd = settings.OGC_SERVER['default']['PASSWORD']
         geoserver_bk_file = os.path.join(target_folder, 'geoserver_catalog.zip')
 
+        print(f"Dumping 'GeoServer Catalog [{url}]' into '{geoserver_bk_file}'.")
         logger.info(f"Dumping 'GeoServer Catalog [{url}]' into '{geoserver_bk_file}'.")
         r = requests.put(f'{url}rest/reset/',
                          auth=HTTPBasicAuth(user, passwd))
@@ -309,7 +310,8 @@ class Command(BaseCommand):
         if r.status_code != 200:
             raise ValueError('Could not reload GeoServer catalog!')
 
-        error_backup = "Could not successfully backup GeoServer catalog [{{}}rest/br/backup/]: {{}} - {{}}"
+        error_backup = "Could not successfully backup GeoServer catalog [{}rest/br/backup/]: {} - {}"
+        # error_backup = "Could not successfully backup GeoServer catalog [{{}}rest/br/backup/]: {{}} - {{}}"
 
         _options = [
             'BK_CLEANUP_TEMP=true',
@@ -381,13 +383,16 @@ class Command(BaseCommand):
 
                 if gs_bk_exec_status == 'FAILED':
                     raise ValueError(error_backup.format(url, r.status_code, r.text))
-                _permissions = 0o777
-                os.chmod(geoserver_bk_file, _permissions)
-                status = os.stat(geoserver_bk_file)
-                if oct(status.st_mode & 0o777) != str(oct(_permissions)):
-                    raise Exception(f"Could not update permissions of {geoserver_bk_file}")
+                #_permissions = 0o777
+                #os.chmod(geoserver_bk_file, _permissions)
+                #status = os.stat(geoserver_bk_file)
+                #if oct(status.st_mode & 0o777) != str(oct(_permissions)):
+                #    raise Exception(f"Could not update permissions of {geoserver_bk_file}")
             else:
                 raise ValueError(error_backup.format(url, r.status_code, r.text))
+        else:
+            print("error while backup")
+            raise ValueError(error_backup.format(url, r.status_code, r.text))
 
     def dump_geoserver_raster_data(self, config, settings, target_folder):
         if (config.gs_data_dir):
@@ -396,13 +401,17 @@ class Command(BaseCommand):
                 gs_data_root = os.path.join(config.gs_data_dir, 'geonode')
                 if not os.path.isabs(gs_data_root):
                     gs_data_root = os.path.join(settings.PROJECT_ROOT, '..', gs_data_root)
+                print(f"Dumping GeoServer Uploaded Data from '{gs_data_root}'.")
                 logger.info(f"Dumping GeoServer Uploaded Data from '{gs_data_root}'.")
                 if os.path.exists(gs_data_root):
+                    print(f"{gs_data_root} exists")
                     gs_data_folder = os.path.join(target_folder, 'gs_data_dir', 'geonode')
                     if not os.path.exists(gs_data_folder):
                         os.makedirs(gs_data_folder, exist_ok=True)
+                    print(f"about to copy {gs_data_root} to {gs_data_folder} filter {config.gs_data_dt_filter}")
                     copy_tree(gs_data_root, gs_data_folder,
                               ignore=utils.ignore_time(config.gs_data_dt_filter[0], config.gs_data_dt_filter[1]))
+                    print(f"Dumped GeoServer Uploaded Data from '{gs_data_root}'.")
                     logger.info(f"Dumped GeoServer Uploaded Data from '{gs_data_root}'.")
                 else:
                     logger.info(f"Skipped GeoServer Uploaded Data '{gs_data_root}'.")
@@ -411,6 +420,7 @@ class Command(BaseCommand):
                 gs_data_root = os.path.join(config.gs_data_dir, 'data', 'geonode')
                 if not os.path.isabs(gs_data_root):
                     gs_data_root = os.path.join(settings.PROJECT_ROOT, '..', gs_data_root)
+                print(f"Dumping GeoServer Uploaded Data from '{gs_data_root}'.")
                 logger.info(f"Dumping GeoServer Uploaded Data from '{gs_data_root}'.")
                 if os.path.exists(gs_data_root):
                     gs_data_folder = os.path.join(target_folder, 'gs_data_dir', 'data', 'geonode')
@@ -419,6 +429,7 @@ class Command(BaseCommand):
 
                     copy_tree(gs_data_root, gs_data_folder,
                               ignore=utils.ignore_time(config.gs_data_dt_filter[0], config.gs_data_dt_filter[1]))
+                    print(f"Dumped GeoServer Uploaded Data from '{gs_data_root}'.")
                     logger.info(f"Dumped GeoServer Uploaded Data from '{gs_data_root}'.")
                 else:
                     logger.info(f"Skipped GeoServer Uploaded Data '{gs_data_root}'.")
